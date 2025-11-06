@@ -1,0 +1,10 @@
+package tacos.chap3;
+
+import lombok.Data;
+
+@Data
+public class IngredientRef {
+
+  private final String ingredient;
+  
+}
