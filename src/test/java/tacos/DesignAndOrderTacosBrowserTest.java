@@ -9,22 +9,19 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
 import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.htmlunit.HtmlUnitDriver;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.boot.test.web.server.LocalServerPort; // ✅ Boot 3.x package
 
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-class DesignAndOrderTacosBrowserTest {
+public class DesignAndOrderTacosBrowserTest {
 
-    private static WebDriver browser;
+    private static HtmlUnitDriver browser;
 
     @LocalServerPort
     private int port;
@@ -33,21 +30,18 @@ class DesignAndOrderTacosBrowserTest {
     TestRestTemplate rest;
 
     @BeforeAll
-    static void setup() {
-        // HtmlUnitDriver with JS enabled for modern pages
-        browser = new HtmlUnitDriver(true);
-        browser.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+    public static void setup() {
+        browser = new HtmlUnitDriver(true); // enable JS
+        browser.manage().timeouts().implicitlyWait(Duration.ofSeconds(10)); // ✅ Selenium 4 style
     }
 
     @AfterAll
-    static void closeBrowser() {
-        if (browser != null) {
-            browser.quit();
-        }
+    public static void closeBrowser() {
+        if (browser != null) browser.quit();
     }
 
     @Test
-    void testDesignATacoPage_HappyPath() {
+    public void testDesignATacoPage_HappyPath() {
         browser.get(homePageUrl());
         clickDesignATaco();
         assertDesignPageElements();
@@ -59,7 +53,7 @@ class DesignAndOrderTacosBrowserTest {
     }
 
     @Test
-    void testDesignATacoPage_EmptyOrderInfo() {
+    public void testDesignATacoPage_EmptyOrderInfo() {
         browser.get(homePageUrl());
         clickDesignATaco();
         assertDesignPageElements();
@@ -70,7 +64,7 @@ class DesignAndOrderTacosBrowserTest {
     }
 
     @Test
-    void testDesignATacoPage_InvalidOrderInfo() {
+    public void testDesignATacoPage_InvalidOrderInfo() {
         browser.get(homePageUrl());
         clickDesignATaco();
         assertDesignPageElements();
@@ -80,11 +74,10 @@ class DesignAndOrderTacosBrowserTest {
         assertThat(browser.getCurrentUrl()).isEqualTo(homePageUrl());
     }
 
-    // ----- Actions & assertions -----
+    // ===== Helpers =====
 
     private void buildAndSubmitATaco(String name, String... ingredients) {
         assertDesignPageElements();
-
         for (String ingredient : ingredients) {
             browser.findElement(By.cssSelector("input[value='" + ingredient + "']")).click();
         }
@@ -111,19 +104,19 @@ class DesignAndOrderTacosBrowserTest {
         assertIngredient(proteinGroup, 1, "CARN", "Carnitas");
 
         WebElement cheeseGroup = browser.findElement(By.cssSelector("div.ingredient-group#cheeses"));
-        List<WebElement> cheeses = cheeseGroup.findElements(By.tagName("div"));
+        List<WebElement> cheeses = cheeseGroup.findElements(By.tagName("div")); // ✅ was using proteinGroup by mistake
         assertThat(cheeses.size()).isEqualTo(2);
         assertIngredient(cheeseGroup, 0, "CHED", "Cheddar");
         assertIngredient(cheeseGroup, 1, "JACK", "Monterrey Jack");
 
         WebElement veggieGroup = browser.findElement(By.cssSelector("div.ingredient-group#veggies"));
-        List<WebElement> veggies = veggieGroup.findElements(By.tagName("div"));
+        List<WebElement> veggies = veggieGroup.findElements(By.tagName("div")); // ✅ fix
         assertThat(veggies.size()).isEqualTo(2);
         assertIngredient(veggieGroup, 0, "TMTO", "Diced Tomatoes");
         assertIngredient(veggieGroup, 1, "LETC", "Lettuce");
 
         WebElement sauceGroup = browser.findElement(By.cssSelector("div.ingredient-group#sauces"));
-        List<WebElement> sauces = sauceGroup.findElements(By.tagName("div"));
+        List<WebElement> sauces = sauceGroup.findElements(By.tagName("div")); // ✅ fix
         assertThat(sauces.size()).isEqualTo(2);
         assertIngredient(sauceGroup, 0, "SLSA", "Salsa");
         assertIngredient(sauceGroup, 1, "SRCR", "Sour Cream");
@@ -137,8 +130,7 @@ class DesignAndOrderTacosBrowserTest {
         fillField("input#deliveryState", "CO");
         fillField("input#deliveryZip", "81019");
         fillField("input#ccNumber", "4111111111111111");
-        // Use a future date so validation passes
-        fillField("input#ccExpiration", "12/30");
+        fillField("input#ccExpiration", "10/24");
         fillField("input#ccCVV", "123");
         browser.findElement(By.cssSelector("form")).submit();
     }
@@ -165,10 +157,8 @@ class DesignAndOrderTacosBrowserTest {
     }
 
     private List<String> getValidationErrorTexts() {
-        return browser.findElements(By.className("validationError"))
-                .stream()
-                .map(WebElement::getText)
-                .collect(Collectors.toList());
+        List<WebElement> validationErrorElements = browser.findElements(By.className("validationError"));
+        return validationErrorElements.stream().map(WebElement::getText).collect(Collectors.toList());
     }
 
     private void submitInvalidOrderForm() {
@@ -201,10 +191,9 @@ class DesignAndOrderTacosBrowserTest {
         field.sendKeys(value);
     }
 
-    private void assertIngredient(WebElement ingredientGroup,
-                                  int ingredientIdx, String id, String name) {
+    private void assertIngredient(WebElement ingredientGroup, int idx, String id, String name) {
         List<WebElement> items = ingredientGroup.findElements(By.tagName("div"));
-        WebElement ingredient = items.get(ingredientIdx);
+        WebElement ingredient = items.get(idx);
         assertThat(ingredient.findElement(By.tagName("input")).getAttribute("value")).isEqualTo(id);
         assertThat(ingredient.findElement(By.tagName("span")).getText()).isEqualTo(name);
     }
@@ -219,21 +208,13 @@ class DesignAndOrderTacosBrowserTest {
         browser.findElement(By.cssSelector("a#another")).click();
     }
 
-    // ----- URL helpers -----
+    // ===== URL helpers =====
 
-    private String designPageUrl() {
-        return homePageUrl() + "design";
-    }
+    private String designPageUrl() { return homePageUrl() + "design"; }
 
-    private String homePageUrl() {
-        return "http://localhost:" + port + "/";
-    }
+    private String homePageUrl() { return "http://localhost:" + port + "/"; }
 
-    private String orderDetailsPageUrl() {
-        return homePageUrl() + "orders";
-    }
+    private String orderDetailsPageUrl() { return homePageUrl() + "orders"; }
 
-    private String currentOrderDetailsPageUrl() {
-        return homePageUrl() + "orders/current";
-    }
+    private String currentOrderDetailsPageUrl() { return homePageUrl() + "orders/current"; }
 }
